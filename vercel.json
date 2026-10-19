@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/SCR_Case_Book_App/$1"
+    }
+  ]
+}

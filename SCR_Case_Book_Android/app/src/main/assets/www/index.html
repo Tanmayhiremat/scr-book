@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SCR Case Book</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0f6b57"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+:root{--bg:#f4f6f5;--card:#fff;--tx:#14201c;--mu:#5d6b66;--ac:#0f6b57;--ac2:#e3f1ed;--bd:#d5dcd9;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10171a;--card:#192226;--tx:#e8efec;--mu:#9bb0a9;--ac:#4fc3a6;--ac2:#1d3a33;--bd:#2c3b40;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#10171a;--card:#192226;--tx:#e8efec;--mu:#9bb0a9;--ac:#4fc3a6;--ac2:#1d3a33;--bd:#2c3b40;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--tx)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--card);z-index:10}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--card);border-bottom:1px solid var(--bd)}
+.bar{display:flex;align-items:center;gap:8px;padding:8px 12px;flex-wrap:wrap}
+.ttl{flex:1;min-width:120px;font-size:17px}
+button,select,input{font:inherit;color:var(--tx)}
+button{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;min-height:44px}
+button.on{background:var(--ac2);border-color:var(--ac);color:var(--ac);font-weight:600}
+.pri{background:var(--ac);color:var(--bg);border-color:var(--ac);width:100%;font-weight:600}
+input,select{padding:12px 14px;border:1px solid var(--bd);border-radius:10px;background:var(--card)}
+main input{width:100%;margin:6px 0 12px}
+.tabs{display:flex;gap:8px;padding:8px 12px}.tabs button{flex:1}
+main{padding:14px 12px;max-width:760px;margin:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px}
+.sec{text-align:left;display:flex;gap:8px;align-items:center}
+.sec small{color:var(--mu);min-width:20px}
+.sec.done{border-color:var(--ac)}.sec.done::after{content:"✓";margin-left:auto;color:var(--ac)}
+.row{display:block;width:100%;text-align:left;margin-bottom:8px}
+.mu,.hint{color:var(--mu);font-size:14px}.hint{margin:8px 12px}
+.dot{width:32px;height:32px;min-height:0;padding:0;border-radius:50%;border:3px solid var(--bd)}
+.dot.on{border-color:var(--ac)}
+#pages{padding:0 8px 40px}
+.paper{position:relative;max-width:1000px;aspect-ratio:5/7;margin:10px auto;background-color:#fff;background-image:repeating-linear-gradient(transparent 0 47px,#dfe7e4 47px 48px);box-shadow:0 1px 6px rgba(0,0,0,.25);border-radius:4px;overflow:hidden}
+.paper canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.sc canvas{pointer-events:none}
+.pn{position:absolute;right:10px;bottom:6px;color:#889;font-size:12px}
+.cols{position:absolute;inset:0;display:flex;pointer-events:none}
+.cols b{border-right:1px solid #b9c6c1;padding:6px;font:600 12px system-ui,sans-serif;color:#456;background:linear-gradient(#e6eeeb 0,#e6eeeb 6%,transparent 6%)}
+.cols small{display:block;font-weight:400;color:#789}
+</style></head>
+<body><div id="app"></div>
+<script>
+const app=document.getElementById('app'),$=s=>document.querySelector(s);
+const S={tab:'new',tool:'p',col:'#111111',sz:2.5,m:0,ps:0},COL=['#111111','#1747c9','#c01818'];
+const SECS=[
+['Case particulars','S. No · Physician · Observer · OPD / IPD Reg. No. · Date · Diagnosis · Age · Sex · Education · Occupation · Status · Religion · Veg / N.V. · Spouse · Father · Mother · Siblings · Children · Address · Tel'],
+['Case summary',''],
+['A.I Chief complaint(s)','No. · Location (area, direction, spread, tissue, organ, system & duration) · Sensation & pathology · Modalities (A.F., <, >) · Accompaniments (strict time relation)',1],
+['A.II Associated complaints (concomitants)',''],
+['III.A.1 Physical characteristics','Appearance · build · weight · face · hands · gait · deformities · skin · hair · nails · eyes · ears · mouth · teeth · coldness / heat · oedema · perspiration · general impression & type'],
+['III.A.2 Digestion','Acidity · appetite · colics · eructations · flatulence · hunger · nausea · taste · thirst · vomiting · aversions (A) & cravings (C)'],
+['III.A.3 Eliminations','Stool · urine · abnormal discharges'],
+['III.A.4 Menstrual function','FMP · LMP · menarche · menses · flow · leucorrhoea · concomitants'],
+['III.A.5 Sexual function','Desire · masturbation · coitus · erection · ejaculation · orgasm · vagina'],
+['III.A.6 Patient’s / mother’s obstetric history','Pregnancies · antenatal · labour · delivery · post-partum · particulars of each pregnancy'],
+['III.A.7 Developmental landmarks & problems','Milestones · speech · control · feeding · behaviour · parental attitudes'],
+['III.A.8 Diet & daily routine',''],
+['III.B Mental state','Emotional · reactions · intellectual · activity / inactivity · imbalance · evidence · state: nature & cause'],
+['Life-space investigation','Society · family · inter-personal · dissatisfaction'],
+['III.C Reactions – physical factors','Time · temperature · motion & position · meteorological · sensory inputs · physiological functions'],
+['Dreams: analysis',''],
+['III.D Fever totality','Onset · type · course · chill · heat · perspiration · compound fevers · apyrexia'],
+['III.E Original unmodified picture',''],
+['III.F Chronological sequence',''],
+['Past history (personal / family) & check-list','P/H · F/H · addictions · autoimmune · mental disorders · skin'],
+['Provisional clinical & differential diagnosis',''],
+['Investigations','Investigation · report · dates'],
+['Miasmatic expression','Past · personal · family history · predispositions'],
+['Repertorial technique & totality',''],
+['Remedy-correspondences & selection','Constitutional · acute · intercurrent totalities (state grounds of final selection)'],
+['Planning & programming of Rx','Susceptibility · sensitivity · suppressions · correspondence · functional / structural changes · variations · vitality · miasm']
+];
+const COLS='<div class="cols"><b style="flex:.5">No.</b><b style="flex:2.2">Location<small>area · direction · spread · tissue · organ · system · duration</small></b><b style="flex:1.6">Sensation &amp; pathology</b><b style="flex:1.6">Modalities<small>A.F. · &lt; · &gt;</small></b><b style="flex:1.6">Accompaniments<small>strict time relation</small></b></div>';
+const esc=s=>String(s).replace(/[&<>"]/g,c=>'&#'+c.charCodeAt(0)+';');
+const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
+/* storage: IndexedDB with in-memory fallback */
+const mem=new Map();let db=null,flush=async()=>{};
+const kv=(m,f)=>new Promise(r=>{try{const q=f(db.transaction('kv',m).objectStore('kv'));q.onsuccess=()=>r(q.result);q.onerror=()=>r()}catch(e){r()}});
+const get=k=>db?kv('readonly',s=>s.get(k)):Promise.resolve(mem.get(k));
+const set=(k,v)=>db?kv('readwrite',s=>s.put(v,k)):(mem.set(k,v),Promise.resolve());
+const list=pre=>db?kv('readonly',s=>s.getAll(IDBKeyRange.bound(pre,pre+'\uffff'))).then(r=>r||[]):Promise.resolve([...mem].filter(e=>e[0].startsWith(pre)).map(e=>e[1]));
+const init=()=>new Promise(r=>{try{const q=indexedDB.open('scrbook',1);q.onupgradeneeded=()=>q.result.createObjectStore('kv');q.onsuccess=()=>{db=q.result;r()};q.onerror=q.onblocked=()=>r()}catch(e){r()}});
+/* drawing */
+function line(x,s){x.globalCompositeOperation=s.e?'destination-out':'source-over';x.strokeStyle=s.c;x.lineWidth=s.w;x.lineCap=x.lineJoin='round';x.beginPath();const q=s.p;x.moveTo(q[0],q[1]);if(q.length==2)x.lineTo(q[0]+.1,q[1]);for(let i=2;i<q.length;i+=2)x.lineTo(q[i],q[i+1]);x.stroke()}
+function redraw(cv,st){const x=cv.getContext('2d');x.clearRect(0,0,cv.width,cv.height);st.forEach(s=>line(x,s))}
+/* backup & cloud */
+const BK=`<h3 style="margin:0 0 8px">Backup</h3><p class="mu">Saves every patient, case record and follow-up into one file you can keep, email or restore on another tablet.</p><button class="pri" id="ex">Export backup file</button><div style="height:8px"></div><button class="row" id="im">Import backup file</button><input id="fi" type="file" accept=".json,application/json" hidden><h3 style="margin:20px 0 8px">Cloud sync</h3><p class="mu">Optional. Enter a WebDAV or HTTPS address you control (Nextcloud, your own server). The full backup is sent with a PUT request, and the server must allow CORS.</p><input id="cu" placeholder="https://example.com/scr-backup.json"><input id="ct" placeholder="Access token (optional)" type="password"><button class="row" id="cp">Upload to cloud now</button><button class="row" id="cd">Download from cloud (merge)</button><p class="mu" id="st"></p>`;
+const dump=async()=>{if(!db)return Object.fromEntries(mem);const[k,v]=await Promise.all([kv('readonly',s=>s.getAllKeys()),kv('readonly',s=>s.getAll())]),o={};k.forEach((a,i)=>o[a]=v[i]);delete o.cfg;return o};
+const load=async o=>{const sk=new Set();for(const k in o)if(k.startsWith('p:')){const c=await get(k);if(c&&c.updated>o[k].updated)sk.add(k.slice(2))}for(const k in o)if(k!='cfg'&&!sk.has(k.split(':')[1]))await set(k,o[k])};
+async function bkInit(){
+ const c=(await get('cfg'))||{},st=t=>$('#st').textContent=t;
+ $('#cu').value=c.url||'';$('#ct').value=c.token||'';
+ const sc=()=>set('cfg',{url:$('#cu').value.trim(),token:$('#ct').value});
+ $('#cu').onchange=$('#ct').onchange=sc;
+ const hd=()=>{const h={'Content-Type':'application/json'};if($('#ct').value)h.Authorization='Bearer '+$('#ct').value;return h};
+ $('#ex').onclick=async()=>{
+  const jsonStr=JSON.stringify({v:1,data:await dump()});
+  if(window.AndroidBridge&&window.AndroidBridge.exportBackup){
+   window.AndroidBridge.exportBackup(jsonStr);
+   st('Native export triggered.');
+   return;
+  }
+  const f=new File([jsonStr],'scr-backup-'+today()+'.json',{type:'application/json'});
+  if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f],title:'SCR backup'});return}catch(e){}}
+  const a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=f.name;a.click();st('Backup file created.');
+ };
+ $('#im').onclick=()=>{
+  if(window.AndroidBridge&&window.AndroidBridge.requestImportBackup){
+   window.AndroidBridge.requestImportBackup();
+   return;
+  }
+  $('#fi').click();
+ };
+ window.onBackupImported=async jsonStr=>{
+  try{await load(JSON.parse(jsonStr).data);st('Backup imported and merged successfully.');setTimeout(()=>home(),1200)}
+  catch(x){st('Import failed: invalid backup file.')}
+ };
+ $('#fi').onchange=async e=>{try{await load(JSON.parse(await e.target.files[0].text()).data);st('Backup imported and merged.')}catch(x){st('That file could not be read.')}};
+ $('#cp').onclick=async()=>{await sc();const u=$('#cu').value.trim();if(!u)return st('Enter an address first.');st('Uploading…');try{const r=await fetch(u,{method:'PUT',headers:hd(),body:JSON.stringify({v:1,data:await dump()})});st(r.ok?'Uploaded at '+new Date().toLocaleTimeString():'Server replied '+r.status)}catch(x){st('Upload failed: check the address, connection and CORS settings.')}};
+ $('#cd').onclick=async()=>{await sc();const u=$('#cu').value.trim();if(!u)return st('Enter an address first.');st('Downloading…');try{const r=await fetch(u,{headers:hd()});if(!r.ok)return st('Server replied '+r.status);await load((await r.json()).data);st('Cloud data merged.')}catch(x){st('Download failed: check the address, connection and CORS settings.')}};
+}
+/* screens */
+async function home(){
+ flush=async()=>{};
+ const ps=(await list('p:')).sort((a,b)=>b.updated-a.updated),nw=S.tab=='new';
+ const switchBtn=window.AndroidBridge?'<button id="swNative" style="font-size:13px;padding:6px 10px;background:var(--ac2);color:var(--ac);border-color:var(--ac);">📱 Switch to Compose</button>':'';
+ app.innerHTML=`<div class="top"><div class="bar"><b class="ttl">SCR Case Book</b>${switchBtn}</div><nav class="tabs"><button data-t="new" class="${nw?'on':''}">New patient</button><button data-t="fu" class="${S.tab=='fu'?'on':''}">Follow-up</button><button data-t="bk" class="${S.tab=='bk'?'on':''}">Backup &amp; cloud</button></nav></div><main>${db?'':'<p class="mu">⚠ Storage is unavailable here, so records will be lost when this page closes.</p>'}`+(S.tab=='bk'?BK:nw?'<label>Patient name</label><input id="nm" placeholder="Type name" autocomplete="off"><button class="pri" id="go">Start case record</button><p class="mu">The next screen lists every SCR section for stylus writing.</p>':'<input id="q" placeholder="Search patient name" autocomplete="off"><div id="ls"></div>')+'</main>';
+ if($('#swNative')) $('#swNative').onclick=()=>window.AndroidBridge.switchToNative();
+ document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{S.tab=b.dataset.t;home()});
+ if(S.tab=='bk')return bkInit();if(nw){const go=async()=>{const name=$('#nm').value.trim();if(!name){$('#nm').focus();return}const p={id:Date.now().toString(36),name,created:Date.now(),updated:Date.now(),fu:[],pg:{},ink:{}};await set('p:'+p.id,p);pat(p)};$('#go').onclick=go;$('#nm').onkeydown=e=>{if(e.key=='Enter')go()}}
+ else{const show=()=>{const q=$('#q').value.trim().toLowerCase(),m=ps.filter(p=>p.name.toLowerCase().includes(q));$('#ls').innerHTML=m.length?m.map(p=>`<button class="row" data-id="${p.id}"><b>${esc(p.name)}</b><br><small class="mu">${p.fu.length} follow-up(s) · updated ${new Date(p.updated).toLocaleDateString()}</small></button>`).join(''):'<p class="mu">No patients found.</p>';$('#ls').querySelectorAll('.row').forEach(b=>b.onclick=()=>pat(ps.find(p=>p.id==b.dataset.id),'f'))};$('#q').oninput=show;show()}
+}
+function pat(p,tab='c'){
+ flush=async()=>{};
+ app.innerHTML=`<div class="top"><div class="bar"><button id="bk">‹ Home</button><b class="ttl">${esc(p.name)}</b></div><nav class="tabs"><button data-t="c" class="${tab=='c'?'on':''}">Case record</button><button data-t="f" class="${tab=='f'?'on':''}">Follow-ups (${p.fu.length})</button></nav></div><main id="mn"></main>`;
+ $('#bk').onclick=()=>home();document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>pat(p,b.dataset.t));
+ const mn=$('#mn');
+ if(tab=='c'){mn.innerHTML='<div class="grid">'+SECS.map((s,i)=>`<button class="sec ${p.ink['s'+i]?'done':''}" data-i="${i}"><small>${i+1}</small>${esc(s[0])}</button>`).join('')+'</div>';mn.querySelectorAll('.sec').forEach(b=>b.onclick=()=>openSec(p,+b.dataset.i))}
+ else{mn.innerHTML='<button class="pri" id="nf">+ New follow-up</button><div style="height:12px"></div>'+[...p.fu].sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id).map(f=>`<button class="row" data-f="${f.id}"><b>${f.date}</b>${p.ink['f'+f.id]?' ✓':''}<br><small class="mu">${esc(f.rx||'No remedy noted')}</small></button>`).join('');
+  $('#nf').onclick=async()=>{const f={id:Date.now(),date:today(),rx:''};p.fu.push(f);p.updated=Date.now();await set('p:'+p.id,p);openFu(p,f)};
+  mn.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>openFu(p,p.fu.find(f=>f.id==b.dataset.f)))}
+ scrollTo(0,0);
+}
+const openSec=(p,i)=>sheet(p,'s'+i,SECS[i][0],{hint:SECS[i][1],cols:SECS[i][2],idx:i});
+const openFu=(p,f)=>sheet(p,'f'+f.id,'Follow-up · '+f.date,{fu:f});
+async function sheet(p,key,title,o={}){
+ const n0=p.pg[key]||1,pg=[];let cu=0;
+ app.innerHTML=`<div class="top"><div class="bar"><button id="bk">‹ Back</button><b class="ttl">${esc(title)}</b>${o.idx!=null?'<button id="pv">‹</button><button id="nx">›</button>':''}</div><div class="bar"><button id="t1">✏️ Pen</button><button id="t2">Eraser</button>${COL.map(c=>`<button class="dot" data-c="${c}" style="background:${c}"></button>`).join('')}<select id="sz"><option value="1.5">Thin</option><option value="2.5">Medium</option><option value="5">Thick</option></select><button id="un">↶ Undo</button><button id="cl">Clear page</button><button id="ad">+ Page</button><button id="md"></button></div></div>`
+ +(o.fu?`<div class="bar"><input id="fd" type="date" value="${o.fu.date}"><input id="fr" placeholder="Remedy / potency (typed)" value="${esc(o.fu.rx)}" style="flex:1"></div>`:'')+(o.hint?`<p class="hint">${esc(o.hint)}</p>`:'')+'<div id="pages"></div>';
+ const sv=async i=>{await set('i:'+p.id+':'+key+':'+i,pg[i].st);p.ink[key]=pg.some(g=>g.st.length)?1:0;p.updated=Date.now();await set('p:'+p.id,p)};
+ flush=async()=>{await Promise.all(pg.map((g,i)=>{clearTimeout(g.t);return sv(i)}))};
+ const bind=(g,i)=>{const cv=g.cv,x=cv.getContext('2d');let c=null;
+  const pt=e=>{const r=cv.getBoundingClientRect(),k=cv.width/r.width;return[Math.round((e.clientX-r.left)*k),Math.round((e.clientY-r.top)*k)]};
+  cv.onpointerdown=e=>{if(e.pointerType=='pen')S.ps=1;if(e.pointerType=='touch'&&(S.m!=1||S.ps))return;e.preventDefault();cv.setPointerCapture(e.pointerId);cu=i;const er=S.tool=='e';c={c:S.col,w:S.sz*1.5*(er?6:1),e:er?1:0,p:pt(e)};line(x,c)};
+  cv.onpointermove=e=>{if(!c)return;const[a,b]=pt(e),q=c.p,l=q.length;line(x,{...c,p:[q[l-2],q[l-1],a,b]});q.push(a,b)};
+  cv.onpointerup=cv.onpointercancel=()=>{if(!c)return;g.st.push(c);c=null;clearTimeout(g.t);g.t=setTimeout(()=>sv(i),350)}};
+ const add=async i=>{const st=(await get('i:'+p.id+':'+key+':'+i))||[],w=document.createElement('div');w.className='paper';w.innerHTML=(o.cols&&i==0?COLS:'')+'<canvas width="1500" height="2100"></canvas><span class="pn">'+(i+1)+'</span>';$('#pages').append(w);const cv=w.querySelector('canvas'),g={cv,st};pg[i]=g;redraw(cv,st);bind(g,i)};
+ const ui=()=>{$('#t1').classList.toggle('on',S.tool=='p');$('#t2').classList.toggle('on',S.tool=='e');document.querySelectorAll('.dot').forEach(d=>d.classList.toggle('on',d.dataset.c==S.col&&S.tool=='p'));$('#md').textContent=['✏️ Pen only','✏️ + ☝️ Pen & finger','✋ Scroll'][S.m];$('#pages').classList.toggle('sc',S.m==2)};
+ $('#t1').onclick=()=>{S.tool='p';ui()};$('#t2').onclick=()=>{S.tool='e';ui()};
+ document.querySelectorAll('.dot').forEach(d=>d.onclick=()=>{S.col=d.dataset.c;S.tool='p';ui()});
+ $('#sz').value=S.sz;$('#sz').onchange=e=>S.sz=+e.target.value;
+ $('#md').onclick=()=>{S.m=(S.m+1)%3;ui()};
+ $('#un').onclick=()=>{const g=pg[cu];g.st.pop();redraw(g.cv,g.st);sv(cu)};
+ let cf=0;$('#cl').onclick=function(){if(!cf){cf=1;this.textContent='Tap again to clear';setTimeout(()=>{cf=0;this.textContent='Clear page'},2500);return}cf=0;this.textContent='Clear page';const g=pg[cu];g.st.length=0;redraw(g.cv,g.st);sv(cu)};
+ $('#ad').onclick=async()=>{const i=pg.length;p.pg[key]=i+1;await add(i);await set('p:'+p.id,p);pg[i].cv.scrollIntoView({behavior:'smooth'})};
+ $('#bk').onclick=async()=>{await flush();pat(p,o.fu?'f':'c')};
+ if(o.idx!=null){const go=d=>async()=>{await flush();openSec(p,(o.idx+d+SECS.length)%SECS.length)};$('#pv').onclick=go(-1);$('#nx').onclick=go(1)}
+ if(o.fu){const sf=()=>{p.updated=Date.now();set('p:'+p.id,p)};$('#fd').onchange=e=>{o.fu.date=e.target.value;sf()};$('#fr').oninput=e=>{o.fu.rx=e.target.value;sf()}}
+ ui();for(let i=0;i<n0;i++)await add(i);
+ scrollTo(0,0);
+}
+addEventListener('pagehide',()=>flush());if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+document.addEventListener('visibilitychange',()=>{if(document.hidden)flush()});
+init().then(()=>{try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}home()});
+</script></body></html>

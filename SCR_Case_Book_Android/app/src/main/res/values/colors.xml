@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="scr_primary">#0F6B57</color>
+    <color name="scr_on_primary">#FFFFFF</color>
+    <color name="scr_primary_container">#E3F1ED</color>
+    <color name="scr_on_primary_container">#002018</color>
+    
+    <color name="scr_secondary">#4A635B</color>
+    <color name="scr_background_light">#F4F6F5</color>
+    <color name="scr_card_light">#FFFFFF</color>
+    <color name="scr_text_light">#14201C</color>
+    <color name="scr_muted_light">#5D6B66</color>
+    <color name="scr_border_light">#D5DCD9</color>
+
+    <color name="scr_background_dark">#10171A</color>
+    <color name="scr_card_dark">#192226</color>
+    <color name="scr_text_dark">#E8EFEC</color>
+    <color name="scr_muted_dark">#9BB0A9</color>
+    <color name="scr_border_dark">#2C3B40</color>
+    <color name="scr_accent_dark">#4FC3A6</color>
+
+    <!-- Ink Colors -->
+    <color name="ink_black">#111111</color>
+    <color name="ink_blue">#1747C9</color>
+    <color name="ink_red">#C01818</color>
+    <color name="paper_line">#DFE7E4</color>
+</resources>

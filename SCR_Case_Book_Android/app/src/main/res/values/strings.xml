@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">SCR Case Book</string>
+    <string name="switch_to_native">Switch to Native Jetpack Compose</string>
+    <string name="switch_to_webview">Switch to Canvas WebView Bridge</string>
+</resources>
