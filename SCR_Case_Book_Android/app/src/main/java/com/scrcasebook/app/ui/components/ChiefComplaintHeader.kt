@@ -27,7 +27,7 @@ fun ChiefComplaintHeader(modifier: Modifier = Modifier) {
         }
         Column(modifier = Modifier.weight(2.2f).padding(horizontal = 2.dp)) {
             Text(text = "Location", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF445566))
-            Text(text = "area · direction · spread · organ · duration", fontSize = 8.sp, color = Color(0xFF778899), lineHeight = 9.sp)
+            Text(text = "area · direction · spread · tissue · organ · system · duration", fontSize = 8.sp, color = Color(0xFF778899), lineHeight = 9.sp)
         }
         Column(modifier = Modifier.weight(1.6f).padding(horizontal = 2.dp)) {
             Text(text = "Sensation & Path.", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF445566))
@@ -38,7 +38,7 @@ fun ChiefComplaintHeader(modifier: Modifier = Modifier) {
         }
         Column(modifier = Modifier.weight(1.6f).padding(horizontal = 2.dp)) {
             Text(text = "Accompaniments", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF445566))
-            Text(text = "strict time relation", fontSize = 8.sp, color = Color(0xFF778899), lineHeight = 9.sp)
+            Text(text = "strict time relation · concomitants", fontSize = 8.sp, color = Color(0xFF778899), lineHeight = 9.sp)
         }
     }
 }
