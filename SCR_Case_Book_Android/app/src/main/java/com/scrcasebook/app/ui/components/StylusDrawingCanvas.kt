@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,6 +54,8 @@ fun StylusDrawingCanvas(
 ) {
     val currentPoints = remember { mutableStateListOf<Float>() }
     var isDrawing by remember { mutableStateOf(false) }
+    val latestStrokes by rememberUpdatedState(strokes)
+    val latestOnStrokesChanged by rememberUpdatedState(onStrokesChanged)
 
     val paperBackground = Color(0xFFFFFFFF)
     val ruledLineColor = PaperLineColor
@@ -105,8 +108,8 @@ fun StylusDrawingCanvas(
                                             e = if (isEraser || down.type == PointerType.Eraser) 1 else 0,
                                             p = currentPoints.toList()
                                         )
-                                        val updated = strokes.toMutableList().apply { add(newStroke) }
-                                        onStrokesChanged(updated)
+                                        val updated = latestStrokes.toMutableList().apply { add(newStroke) }
+                                        latestOnStrokesChanged(updated)
                                     }
                                     currentPoints.clear()
                                     isDrawing = false
