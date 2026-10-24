@@ -1,6 +1,8 @@
 package com.scrcasebook.app.ui.components
 
+import android.graphics.BitmapFactory
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -30,10 +32,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke as CanvasStroke
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.scrcasebook.app.data.model.PalmRejectionMode
@@ -43,6 +49,9 @@ import com.scrcasebook.app.ui.theme.PaperLineColor
 @Composable
 fun StylusDrawingCanvas(
     pageIndex: Int,
+    pageNumber: Int? = null,
+    isContinuationPage: Boolean = false,
+    isParagraphPage: Boolean = false,
     strokes: List<Stroke>,
     onStrokesChanged: (List<Stroke>) -> Unit,
     activeColor: String,
@@ -57,6 +66,20 @@ fun StylusDrawingCanvas(
     val latestStrokes by rememberUpdatedState(strokes)
     val latestOnStrokesChanged by rememberUpdatedState(onStrokesChanged)
 
+    val context = LocalContext.current
+    val backgroundImage = remember(pageNumber, isContinuationPage) {
+        if (isContinuationPage || pageNumber == null) null
+        else {
+            try {
+                val filename = "www/pages/page-%03d.jpg".format(pageNumber)
+                val stream = context.assets.open(filename)
+                BitmapFactory.decodeStream(stream)?.asImageBitmap()
+            } catch (e: Exception) {
+                null
+            }
+        }
+    }
+
     val paperBackground = Color(0xFFFFFFFF)
     val ruledLineColor = PaperLineColor
 
@@ -69,6 +92,32 @@ fun StylusDrawingCanvas(
         colors = CardDefaults.cardColors(containerColor = paperBackground)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
+            // Background Image from reference page scans
+            if (backgroundImage != null) {
+                Image(
+                    bitmap = backgroundImage,
+                    contentDescription = "Page $pageNumber",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.FillBounds
+                )
+            }
+
+            // Continuation Sheet Header
+            if (isContinuationPage) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                ) {
+                    Text(
+                        text = "CONTINUATION SHEET",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0F6B57)
+                    )
+                }
+            }
+
             Canvas(
                 modifier = Modifier
                     .fillMaxSize()
@@ -119,22 +168,26 @@ fun StylusDrawingCanvas(
                         }
                     }
             ) {
-                // 1. Draw Ruled Lines
-                val lineSpacing = 48.dp.toPx()
-                var y = lineSpacing
-                while (y < size.height) {
-                    drawLine(
-                        color = ruledLineColor,
-                        start = Offset(0f, y),
-                        end = Offset(size.width, y),
-                        strokeWidth = 1.dp.toPx()
-                    )
-                    y += lineSpacing
-                }
+                // If no background image, draw ruled lines
+                if (backgroundImage == null) {
+                    // 1. Draw Ruled Lines
+                    // In pages where it has bigger paragraphs or continuation pages: 2 extra line gaps between each line (72dp vs 48dp)
+                    val lineSpacing = if (isParagraphPage || isContinuationPage) 72.dp.toPx() else 48.dp.toPx()
+                    var y = lineSpacing
+                    while (y < size.height) {
+                        drawLine(
+                            color = ruledLineColor,
+                            start = Offset(0f, y),
+                            end = Offset(size.width, y),
+                            strokeWidth = 1.dp.toPx()
+                        )
+                        y += lineSpacing
+                    }
 
-                // 2. Draw Chief Complaint Columns if applicable
-                if (hasChiefComplaintColumns && pageIndex == 0) {
-                    drawChiefComplaintGrid(size.width, size.height)
+                    // 2. Draw Chief Complaint Columns if applicable
+                    if (hasChiefComplaintColumns && pageIndex == 0) {
+                        drawChiefComplaintGrid(size.width, size.height)
+                    }
                 }
 
                 // 3. Draw Persisted Strokes
@@ -156,12 +209,15 @@ fun StylusDrawingCanvas(
 
             // Page Number Indicator
             Text(
-                text = "${pageIndex + 1}",
-                color = Color(0xFF888899),
-                fontSize = 12.sp,
+                text = if (isContinuationPage) "Continuation +${pageIndex + 1}" else (pageNumber?.let { "Page $it of 106" } ?: "${pageIndex + 1}"),
+                color = Color(0xFF333333),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(end = 12.dp, bottom = 8.dp)
+                    .background(Color.White.copy(alpha = 0.85f), RoundedCornerShape(4.dp))
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
             )
         }
     }

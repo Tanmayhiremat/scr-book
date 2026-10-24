@@ -227,12 +227,17 @@ main {
   color: var(--mu);
   font-size: 13px;
 }
+p, .hint {
+  line-height: 2.2;
+}
 .hint {
   margin: 6px 12px;
   background: var(--card);
-  padding: 8px 12px;
+  padding: 10px 14px;
   border-radius: 6px;
   border: 1px solid var(--bd);
+  line-height: 2.2;
+  letter-spacing: 0.2px;
 }
 .dot {
   width: 32px;
@@ -246,6 +251,11 @@ main {
 .dot.on {
   border-color: var(--ac);
   transform: scale(1.1);
+}
+#del.on {
+  background: #c01818;
+  color: #fff;
+  border-color: #c01818;
 }
 #pages {
   padding: 0 8px 60px;
@@ -265,6 +275,41 @@ main {
   user-select: none;
   -webkit-user-select: none;
   touch-action: pan-y;
+}
+.paper.clear-page, .paper.paragraph-page {
+  background-color: #ffffff;
+  /* 2 extra line gaps between each line: 64px line spacing (vs standard 22px-24px) */
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 62px,
+    rgba(15, 107, 87, 0.22) 62px,
+    rgba(15, 107, 87, 0.22) 64px
+  );
+  background-position: 0 54px;
+}
+.paper.clear-page .clear-header {
+  position: absolute;
+  top: 14px;
+  left: 24px;
+  right: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid var(--ac);
+  padding-bottom: 4px;
+  color: var(--ac);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  pointer-events: none;
+  user-select: none;
+  z-index: 1;
+}
+.paper.clear-page .clear-num {
+  font-size: 12px;
+  color: var(--mu);
+  font-weight: 600;
 }
 .paper img.page-bg {
   position: absolute;
@@ -379,6 +424,7 @@ let db = null, flush = async () => {};
 const kv = (m, f) => new Promise(r => { try { const q = f(db.transaction('kv', m).objectStore('kv')); q.onsuccess = () => r(q.result); q.onerror = () => r(); } catch (e) { r(); } });
 const get = k => db ? kv('readonly', s => s.get(k)) : Promise.resolve(mem.get(k));
 const set = (k, v) => db ? kv('readwrite', s => s.put(v, k)) : (mem.set(k, v), Promise.resolve());
+const del = k => db ? kv('readwrite', s => s.delete(k)) : (mem.delete(k), Promise.resolve());
 const list = pre => db ? kv('readonly', s => s.getAll(IDBKeyRange.bound(pre, pre + '\uffff'))).then(r => r || []) : Promise.resolve([...mem].filter(e => e[0].startsWith(pre)).map(e => e[1]));
 const init = () => new Promise(r => { try { const q = indexedDB.open('scrbook', 1); q.onupgradeneeded = () => q.result.createObjectStore('kv'); q.onsuccess = () => { db = q.result; r(); }; q.onerror = q.onblocked = () => r(); } catch (e) { r(); } });
 
@@ -654,10 +700,19 @@ async function sheet(p, key, title, o = {}) {
   const pg = [];
   let cu = 0;
 
-  app.innerHTML = `<div class="top"><div class="bar"><button id="bk">‹ Back</button><b class="ttl">${esc(title)}</b>${o.idx != null ? '<button id="pv" title="Previous section">‹</button><button id="nx" title="Next section">›</button>' : ''}</div><div class="bar"><button id="t1">✏️ Pen</button><button id="t2">Eraser</button>${COL.map(c => `<button class="dot" data-c="${c}" style="background:${c}"></button>`).join('')}<select id="sz"><option value="1.5">Thin</option><option value="2.5">Medium</option><option value="5">Thick</option></select><button id="un">↶ Undo</button><button id="cl">Clear</button><button id="ad">+ Page</button><button id="md" style="font-weight:600"></button></div><div class="pg-pills" id="pills"></div></div>`
+  app.innerHTML = `<div class="top"><div class="bar"><button id="bk">‹ Back</button><b class="ttl">${esc(title)}</b>${o.idx != null ? '<button id="pv" title="Previous section">‹</button><button id="nx" title="Next section">›</button>' : ''}</div><div class="bar"><button id="t1">✏️ Pen</button><button id="t2">Eraser</button>${COL.map(c => `<button class="dot" data-c="${c}" style="background:${c}"></button>`).join('')}<select id="sz"><option value="1.5">Thin</option><option value="2.5">Medium</option><option value="5">Thick</option></select><button id="un">↶ Undo</button><button id="cl">Clear</button><button id="ad">+ Page</button><button id="del" title="Delete added page">🗑️ - Page</button><button id="md" style="font-weight:600"></button></div><div class="pg-pills" id="pills"></div></div>`
     + (o.fu ? `<div class="bar" style="background:var(--card);border-bottom:1px solid var(--bd)"><input id="fd" type="date" value="${o.fu.date}"><input id="fr" placeholder="Remedy / potency (Rx)" value="${esc(o.fu.rx)}" style="flex:1"></div>` : '')
     + (o.hint ? `<p class="hint">${esc(o.hint)}</p>` : '')
     + '<div id="pages"></div>';
+
+  const updateDelBtn = () => {
+    const hasAdded = pg.length > pgsList.length;
+    const delBtn = $('#del');
+    if (!delBtn) return;
+    delBtn.style.opacity = hasAdded ? '1' : '0.4';
+    delBtn.style.cursor = hasAdded ? 'pointer' : 'not-allowed';
+    delBtn.title = hasAdded ? `Delete added page +${pg.length - pgsList.length}` : 'Default reference pages cannot be deleted';
+  };
 
   const updatePills = () => {
     $('#pills').innerHTML = pg.map((_, i) => {
@@ -669,6 +724,7 @@ async function sheet(p, key, title, o = {}) {
       pg[cu].cv.scrollIntoView({ behavior: 'smooth', block: 'center' });
       updatePills();
     });
+    updateDelBtn();
   };
 
   const sv = async i => {
@@ -802,14 +858,22 @@ async function sheet(p, key, title, o = {}) {
   const add = async i => {
     const st = (await get('i:' + p.id + ':' + key + ':' + i)) || [];
     const w = document.createElement('div');
-    w.className = 'paper';
+    const isAddedPage = i >= pgsList.length;
+    w.className = 'paper' + (isAddedPage ? ' clear-page' : '');
     
-    // Exact page image background from reference book
-    const refPageNum = i < pgsList.length ? pgsList[i] : pgsList[pgsList.length - 1];
-    const imgSrc = `pages/page-${pad3(refPageNum)}.jpg`;
-    const label = i < pgsList.length ? `Page ${refPageNum} of 106` : `Page ${refPageNum} (cont. +${i - pgsList.length + 1})`;
+    if (isAddedPage) {
+      // Clear continuation page: clean ruled sheet with 2 extra line gaps, never duplicate previous page!
+      const extraNum = i - pgsList.length + 1;
+      const label = `Continuation Sheet +${extraNum}`;
+      w.innerHTML = `<div class="clear-header"><span>${esc(title)} — Continuation</span><span class="clear-num">Extra Page +${extraNum}</span></div><canvas width="1270" height="857"></canvas><span class="pn">${label}</span>`;
+    } else {
+      // Exact page image background from reference book
+      const refPageNum = pgsList[i];
+      const imgSrc = `pages/page-${pad3(refPageNum)}.jpg`;
+      const label = `Page ${refPageNum} of 106`;
+      w.innerHTML = `<img class="page-bg" src="${imgSrc}" alt="${esc(label)}" loading="lazy"><canvas width="1270" height="857"></canvas><span class="pn">${label}</span>`;
+    }
 
-    w.innerHTML = `<img class="page-bg" src="${imgSrc}" alt="${esc(label)}" loading="lazy"><canvas width="1270" height="857"></canvas><span class="pn">${label}</span>`;
     $('#pages').append(w);
 
     const cv = w.querySelector('canvas');
@@ -866,6 +930,38 @@ async function sheet(p, key, title, o = {}) {
     updatePills();
     await set('p:' + p.id, p);
     pg[i].cv.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  let df = 0;
+  $('#del').onclick = async function () {
+    if (pg.length <= pgsList.length) return;
+    if (!df) {
+      df = 1;
+      this.textContent = '⚠️ Confirm delete?';
+      this.classList.add('on');
+      setTimeout(() => {
+        df = 0;
+        this.textContent = '🗑️ - Page';
+        this.classList.remove('on');
+      }, 3000);
+      return;
+    }
+    df = 0;
+    this.textContent = '🗑️ - Page';
+    this.classList.remove('on');
+
+    const lastIdx = pg.length - 1;
+    await del('i:' + p.id + ':' + key + ':' + lastIdx);
+    const pagesEl = $('#pages');
+    if (pagesEl.lastElementChild) pagesEl.removeChild(pagesEl.lastElementChild);
+    pg.pop();
+    p.pg[key] = pg.length;
+    p.ink[key] = pg.some(g => g && g.st && g.st.length) ? 1 : 0;
+    p.updated = Date.now();
+    await set('p:' + p.id, p);
+
+    if (cu >= pg.length) cu = Math.max(0, pg.length - 1);
+    updatePills();
   };
 
   $('#bk').onclick = async () => {

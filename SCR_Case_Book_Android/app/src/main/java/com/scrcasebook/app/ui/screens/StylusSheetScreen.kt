@@ -26,6 +26,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoFixHigh
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
@@ -106,12 +107,16 @@ fun StylusSheetScreen(
     var activePageForActions by remember { mutableIntStateOf(0) }
     var isLoaded by remember { mutableStateOf(false) }
 
+    val secDef = remember(sectionKey) { ScrDefinitions.SECTIONS.find { it.key == sectionKey } }
+    val defaultPageCount = remember(sectionKey, followUp) {
+        if (followUp != null) 3 else (secDef?.pages?.size ?: 1)
+    }
+    val isParagraphSection = sectionKey in listOf("s1", "s11", "s24", "s25")
+
     // Load initial pages from Room DB
     LaunchedEffect(patientId, sectionKey) {
         val existingPages = database.sectionPageDao().getPagesList(patientId, sectionKey)
         pages.clear()
-        val secDef = ScrDefinitions.SECTIONS.find { it.key == sectionKey }
-        val defaultPageCount = secDef?.pages?.size ?: 1
         if (existingPages.isEmpty()) {
             for (p in 0 until defaultPageCount) {
                 pages.add(emptyList())
@@ -352,6 +357,29 @@ fun StylusSheetScreen(
                             Spacer(Modifier.width(4.dp))
                             Text("+ Page", fontSize = 12.sp)
                         }
+
+                        // Delete Added Page (only enabled when extra pages exist)
+                        val canDeletePage = pages.size > defaultPageCount
+                        OutlinedButton(
+                            onClick = {
+                                if (canDeletePage) {
+                                    val lastIndex = pages.size - 1
+                                    coroutineScope.launch {
+                                        database.sectionPageDao().deletePage(patientId, sectionKey, lastIndex)
+                                    }
+                                    pages.removeAt(lastIndex)
+                                    if (activePageForActions >= pages.size) {
+                                        activePageForActions = maxOf(0, pages.size - 1)
+                                    }
+                                }
+                            },
+                            enabled = canDeletePage,
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("- Page", fontSize = 12.sp)
+                        }
                     }
 
                     // Follow up inputs if applicable
@@ -415,13 +443,20 @@ fun StylusSheetScreen(
                 ) {
                     itemsIndexed(pages) { index, strokes ->
                         Column(modifier = Modifier.fillMaxWidth()) {
+                            val isContinuation = index >= defaultPageCount
+                            val pageNumber = if (isContinuation) null else if (followUp != null) (104 + index) else secDef?.pages?.getOrNull(index)
+                            val isPara = isParagraphSection || isContinuation
+
                             // If Chief complaints and page 0, show column header
-                            if (sectionKey == "s2" && index == 0) {
+                            if (sectionKey == "s2" && index == 0 && !isContinuation) {
                                 ChiefComplaintHeader()
                             }
 
                             StylusDrawingCanvas(
                                 pageIndex = index,
+                                pageNumber = pageNumber,
+                                isContinuationPage = isContinuation,
+                                isParagraphPage = isPara,
                                 strokes = strokes,
                                 onStrokesChanged = { updatedStrokes ->
                                     activePageForActions = index
@@ -432,7 +467,7 @@ fun StylusSheetScreen(
                                 activeWidth = activeWidth,
                                 isEraser = isEraser,
                                 palmMode = palmMode,
-                                hasChiefComplaintColumns = sectionKey == "s2"
+                                hasChiefComplaintColumns = sectionKey == "s2" && index == 0 && !isContinuation
                             )
                         }
                     }

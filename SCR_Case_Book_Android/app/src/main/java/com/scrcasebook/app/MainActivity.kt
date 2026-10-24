@@ -117,7 +117,7 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     private fun MainNavigation() {
-        var appMode by remember { mutableStateOf(AppMode.NATIVE_COMPOSE) }
+        var appMode by remember { mutableStateOf(AppMode.WEBVIEW_CONTAINER) }
         var currentScreen by remember { mutableStateOf<Screen>(Screen.Home) }
         val coroutineScope = rememberCoroutineScope()
 
