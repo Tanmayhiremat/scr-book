@@ -9,6 +9,8 @@
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
 :root {
   --bg: #f4f6f5;
@@ -370,10 +372,222 @@ p, .hint {
   color: #fff;
   border-color: var(--ac);
 }
+/* AI Assistant & Floating Button */
+.ai-fab {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  background: linear-gradient(135deg, var(--ac) 0%, #1747c9 100%);
+  color: #fff;
+  border: none;
+  border-radius: 28px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 4px 18px rgba(15, 107, 87, 0.45);
+  cursor: pointer;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: 0.3px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.ai-fab:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 6px 24px rgba(15, 107, 87, 0.55);
+}
+.ai-fab:active {
+  transform: scale(0.96);
+}
+.ai-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(2px);
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.ai-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.ai-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 500px;
+  max-width: 94vw;
+  background: var(--bg);
+  box-shadow: -6px 0 28px rgba(0,0,0,0.25);
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.ai-drawer.open {
+  transform: translateX(0);
+}
+.ai-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--card);
+  border-bottom: 1px solid var(--bd);
+}
+.ai-hdr b {
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--tx);
+}
+.ai-badge {
+  font-size: 11px;
+  background: var(--ac2);
+  color: var(--ac);
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+}
+.ai-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--bd);
+  background: var(--card);
+}
+.ai-chip {
+  font-size: 11px;
+  padding: 5px 10px;
+  border-radius: 14px;
+  background: var(--bg);
+  border: 1px solid var(--bd);
+  white-space: nowrap;
+  cursor: pointer;
+  color: var(--tx);
+  transition: all 0.15s ease;
+}
+.ai-chip:hover {
+  border-color: var(--ac);
+  background: var(--ac2);
+  color: var(--ac);
+}
+.ai-chat-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ai-msg {
+  max-width: 90%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+.ai-msg.user {
+  align-self: flex-end;
+  background: var(--ac);
+  color: #fff;
+  border-bottom-right-radius: 2px;
+}
+.ai-msg.model {
+  align-self: flex-start;
+  background: var(--card);
+  border: 1px solid var(--bd);
+  border-bottom-left-radius: 2px;
+  color: var(--tx);
+}
+.ai-msg.model h2, .ai-msg.model h3, .ai-msg.model h4 {
+  margin: 10px 0 4px;
+  color: var(--ac);
+  font-size: 14px;
+}
+.ai-msg.model ul, .ai-msg.model ol {
+  padding-left: 18px;
+  margin: 6px 0;
+}
+.ai-msg.model li {
+  margin-bottom: 3px;
+}
+.ai-msg.model strong {
+  color: #1747c9;
+}
+.ai-input-bar {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  background: var(--card);
+  border-top: 1px solid var(--bd);
+}
+.ai-input-bar input {
+  flex: 1;
+  margin: 0;
+}
+.ai-typing {
+  display: inline-flex;
+  gap: 4px;
+  padding: 6px 10px;
+  background: var(--card);
+  border: 1px solid var(--bd);
+  border-radius: 12px;
+  align-self: flex-start;
+}
+.ai-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--mu);
+  border-radius: 50%;
+  animation: aiBounce 1.4s infinite ease-in-out both;
+}
+.ai-dot:nth-child(1) { animation-delay: -0.32s; }
+.ai-dot:nth-child(2) { animation-delay: -0.16s; }
+@keyframes aiBounce {
+  0%, 80%, 100% { transform: scale(0.2); opacity: 0.4; }
+  40% { transform: scale(1.0); opacity: 1; }
+}
 </style>
 </head>
 <body>
 <div id="app"></div>
+<button id="aiFab" class="ai-fab" title="Open Gemini AI Clinical Assistant">
+  <span style="font-size:16px">🤖</span>
+  <span class="ai-fab-txt">AI Assistant</span>
+</button>
+<div id="aiBackdrop" class="ai-backdrop"></div>
+<div id="aiDrawer" class="ai-drawer">
+  <div class="ai-hdr">
+    <b><span>🤖</span> SCR Clinical AI Assistant</b>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span id="aiActivePat" class="ai-badge" style="display:none"></span>
+      <button id="aiClose" style="min-height:28px;padding:2px 8px;border-radius:6px;cursor:pointer">✕</button>
+    </div>
+  </div>
+  <div class="ai-chips">
+    <button class="ai-chip" id="chipAnalyze" style="display:none">📋 Analyze Current Case</button>
+    <button class="ai-chip" id="chipRepertory">🔍 Repertorize</button>
+    <button class="ai-chip" id="chipMM">💊 Materia Medica</button>
+    <button class="ai-chip" id="chipMiasm">🧬 Miasmatic Analysis</button>
+    <button class="ai-chip" id="chipClear">🧹 Clear Chat</button>
+  </div>
+  <div id="aiChat" class="ai-chat-body"></div>
+  <div class="ai-input-bar">
+    <input id="aiInput" placeholder="Ask Gemini about rubrics, remedies, or case…" autocomplete="off">
+    <button id="aiSend" class="pri" style="width:auto;padding:8px 16px">Send</button>
+  </div>
+</div>
 <script>
 const app = document.getElementById('app'), $ = s => document.querySelector(s);
 const S = { tab: 'new', tool: 'p', col: '#111111', sz: 2.5, m: 0, ps: 0 };
@@ -422,9 +636,28 @@ const pad3 = n => String(n).padStart(3, '0');
 const mem = new Map();
 let db = null, flush = async () => {};
 const kv = (m, f) => new Promise(r => { try { const q = f(db.transaction('kv', m).objectStore('kv')); q.onsuccess = () => r(q.result); q.onerror = () => r(); } catch (e) { r(); } });
+let fbAutoSyncTimer = null;
+const triggerAutoSync = () => {
+  get('cfg').then(c => {
+    if (c && c.firebase && c.fbAuto) {
+      clearTimeout(fbAutoSyncTimer);
+      fbAutoSyncTimer = setTimeout(() => {
+        if (typeof fbSync === 'function') fbSync(null);
+      }, 3000);
+    }
+  }).catch(() => {});
+};
 const get = k => db ? kv('readonly', s => s.get(k)) : Promise.resolve(mem.get(k));
-const set = (k, v) => db ? kv('readwrite', s => s.put(v, k)) : (mem.set(k, v), Promise.resolve());
-const del = k => db ? kv('readwrite', s => s.delete(k)) : (mem.delete(k), Promise.resolve());
+const set = (k, v) => {
+  const res = db ? kv('readwrite', s => s.put(v, k)) : (mem.set(k, v), Promise.resolve());
+  if (k && (k.startsWith('p:') || k.startsWith('i:'))) triggerAutoSync();
+  return res;
+};
+const del = k => {
+  const res = db ? kv('readwrite', s => s.delete(k)) : (mem.delete(k), Promise.resolve());
+  if (k && (k.startsWith('p:') || k.startsWith('i:'))) triggerAutoSync();
+  return res;
+};
 const list = pre => db ? kv('readonly', s => s.getAll(IDBKeyRange.bound(pre, pre + '\uffff'))).then(r => r || []) : Promise.resolve([...mem].filter(e => e[0].startsWith(pre)).map(e => e[1]));
 const init = () => new Promise(r => { try { const q = indexedDB.open('scrbook', 1); q.onupgradeneeded = () => q.result.createObjectStore('kv'); q.onsuccess = () => { db = q.result; r(); }; q.onerror = q.onblocked = () => r(); } catch (e) { r(); } });
 
@@ -527,7 +760,403 @@ window.addEventListener('pointercancel', endScrollDrag, { passive: true });
 window.addEventListener('blur', () => { endScrollDrag(); S.ps = 0; });
 
 /* backup & cloud */
-const BK = `<h3 style="margin:0 0 8px">Backup</h3><p class="mu">Saves every patient, case record and follow-up into one file you can keep, email or restore on another tablet.</p><button class="pri" id="ex">Export backup file</button><div style="height:8px"></div><button class="row" id="im">Import backup file</button><input id="fi" type="file" accept=".json,application/json" hidden><h3 style="margin:20px 0 8px">Cloud sync</h3><p class="mu">Optional. Enter a WebDAV or HTTPS address you control (Nextcloud, your own server). The full backup is sent with a PUT request, and the server must allow CORS.</p><input id="cu" placeholder="https://example.com/scr-backup.json"><input id="ct" placeholder="Access token (optional)" type="password"><button class="row" id="cp">Upload to cloud now</button><button class="row" id="cd">Download from cloud (merge)</button><p class="mu" id="st"></p>`;
+const BK = `<h3 style="margin:0 0 8px">Local Backup</h3>
+<p class="mu">Saves every patient, case record and handwriting stroke into one file you can keep, email or restore.</p>
+<button class="pri" id="ex">Export backup file</button>
+<div style="height:8px"></div>
+<button class="row" id="im">Import backup file</button>
+<input id="fi" type="file" accept=".json,application/json" hidden>
+
+<h3 style="margin:24px 0 8px">🔥 Firebase Cloud Sync</h3>
+<p class="mu">Real-time cloud database sync powered by Google Firebase Firestore. Paste your Firebase Web configuration below.</p>
+<div style="background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:12px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <span style="font-weight:600;font-size:13px">Firebase Project Config</span>
+    <span id="fbBadge" class="ai-badge" style="background:#eee;color:#666">Not Configured</span>
+  </div>
+  <textarea id="fbCfg" rows="4" placeholder='Paste your firebaseConfig code or JSON here, e.g.:
+{
+  "apiKey": "AIzaSy...",
+  "authDomain": "my-app.firebaseapp.com",
+  "projectId": "my-app-id",
+  "storageBucket": "my-app.appspot.com",
+  "appId": "1:..."
+}' style="width:100%;font-family:monospace;font-size:12px;padding:8px;border-radius:6px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);resize:vertical"></textarea>
+  <div style="display:flex;gap:8px;margin-top:8px">
+    <button id="fbSave" style="flex:1;font-weight:600">💾 Save Config</button>
+    <button id="fbTest" style="flex:1">🔗 Test Connection</button>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:8px">
+    <button id="fbSync" class="pri" style="flex:1">☁️ Sync to Firebase Now</button>
+    <button id="fbRestore" style="flex:1">📥 Restore from Firebase</button>
+  </div>
+  <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;cursor:pointer">
+    <input type="checkbox" id="fbAuto" style="width:auto;margin:0"> <b>Auto-sync:</b> push changes to Firebase automatically in background
+  </label>
+  <p class="mu" id="fbSt" style="margin:8px 0 0;font-size:12px"></p>
+</div>
+
+<h3 style="margin:24px 0 8px">✨ Gemini AI Clinical Assistant</h3>
+<p class="mu">Integrate Google Gemini for instant homoeopathic case analysis, totality of symptoms, repertorization rubrics, and differential Materia Medica.</p>
+<div style="background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:12px">
+  <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px">Gemini API Key</label>
+  <input id="gemKey" placeholder="Paste your Gemini API Key (AIzaSy...)" type="password" style="width:100%;margin-bottom:8px">
+  <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px">Model Selection</label>
+  <div style="display:flex;gap:8px;margin-bottom:8px">
+    <select id="gemModel" style="flex:1">
+      <option value="gemini-1.5-flash">Gemini 1.5 Flash (Fast &amp; Accurate - Recommended)</option>
+      <option value="gemini-2.0-flash">Gemini 2.0 Flash (Next-Gen Speed)</option>
+      <option value="gemini-1.5-pro">Gemini 1.5 Pro (Deep Clinical Reasoning)</option>
+    </select>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button id="gemSave" class="pri" style="flex:1">💾 Save API Key</button>
+    <button id="gemTest" style="flex:1">🧪 Test Connection</button>
+  </div>
+  <p class="mu" id="gemSt" style="margin:8px 0 0;font-size:12px"></p>
+</div>
+
+<h3 style="margin:24px 0 8px">WebDAV / Custom Server Sync</h3>
+<p class="mu">Optional WebDAV or HTTPS PUT endpoint (Nextcloud, personal server).</p>
+<input id="cu" placeholder="https://example.com/scr-backup.json">
+<input id="ct" placeholder="Access token (optional)" type="password">
+<button class="row" id="cp">Upload to server now</button>
+<button class="row" id="cd">Download from server (merge)</button>
+<p class="mu" id="st"></p>`;
+
+/* Firebase Firestore Sync Engine */
+function parseFirebaseConfig(str) {
+  if (!str) return null;
+  str = str.trim();
+  const match = str.match(/\{[\s\S]*\}/);
+  if (!match) return null;
+  let jsonStr = match[0];
+  try { return JSON.parse(jsonStr); } catch (e) {}
+  jsonStr = jsonStr.replace(/([{\s,])(\w+)\s*:/g, '$1"$2":').replace(/,\s*([}\]])/g, '$1');
+  try { return JSON.parse(jsonStr); } catch (e) {}
+  const apiKey = (str.match(/apiKey["'\s:]+([^"',\s]+)/) || [])[1];
+  const projectId = (str.match(/projectId["'\s:]+([^"',\s]+)/) || [])[1];
+  const authDomain = (str.match(/authDomain["'\s:]+([^"',\s]+)/) || [])[1];
+  const storageBucket = (str.match(/storageBucket["'\s:]+([^"',\s]+)/) || [])[1];
+  const appId = (str.match(/appId["'\s:]+([^"',\s]+)/) || [])[1];
+  if (apiKey && projectId) return { apiKey, projectId, authDomain, storageBucket, appId };
+  return null;
+}
+
+let fbApp = null, fbDb = null;
+function getFirebaseDb(cfg) {
+  if (typeof firebase === 'undefined') return null;
+  try {
+    if (!fbApp) {
+      fbApp = firebase.apps && firebase.apps.length ? firebase.app() : firebase.initializeApp(cfg);
+    }
+    if (!fbDb) {
+      fbDb = firebase.firestore();
+      try { fbDb.enablePersistence({ synchronizeTabs: true }).catch(() => {}); } catch(e) {}
+    }
+    return fbDb;
+  } catch (err) {
+    console.warn('Firebase error:', err);
+    return null;
+  }
+}
+
+async function fbSync(stEl) {
+  const c = (await get('cfg')) || {};
+  if (!c.firebase || !c.firebase.projectId) {
+    if (stEl) stEl.textContent = '⚠️ Please save your Firebase configuration first.';
+    return false;
+  }
+  if (typeof firebase === 'undefined') {
+    if (stEl) stEl.textContent = '⚠️ Firebase SDK not ready. Check internet connection.';
+    return false;
+  }
+  if (stEl) stEl.textContent = 'Syncing cases to Firebase Firestore…';
+  try {
+    const fdb = getFirebaseDb(c.firebase);
+    if (!fdb) throw new Error('Could not initialize Firebase Firestore');
+    const dumpData = await dump();
+    const docId = c.firebase.projectId;
+    await fdb.collection('scr_backups').doc(docId).set({
+      updated: Date.now(),
+      v: 1,
+      device: navigator.userAgent,
+      payload: JSON.stringify(dumpData)
+    });
+    if (stEl) stEl.textContent = '✅ Synced to Firebase successfully at ' + new Date().toLocaleTimeString();
+    return true;
+  } catch (err) {
+    if (stEl) stEl.textContent = '❌ Sync failed: ' + (err.message || err);
+    return false;
+  }
+}
+
+async function fbRestore(stEl) {
+  const c = (await get('cfg')) || {};
+  if (!c.firebase || !c.firebase.projectId) {
+    if (stEl) stEl.textContent = '⚠️ Please save your Firebase configuration first.';
+    return false;
+  }
+  if (typeof firebase === 'undefined') {
+    if (stEl) stEl.textContent = '⚠️ Firebase SDK not ready. Check internet connection.';
+    return false;
+  }
+  if (stEl) stEl.textContent = 'Downloading cases from Firebase Firestore…';
+  try {
+    const fdb = getFirebaseDb(c.firebase);
+    if (!fdb) throw new Error('Could not initialize Firebase Firestore');
+    const docId = c.firebase.projectId;
+    const doc = await fdb.collection('scr_backups').doc(docId).get();
+    if (!doc.exists) {
+      if (stEl) stEl.textContent = 'No records found in Firebase for project ' + docId;
+      return false;
+    }
+    const val = doc.data();
+    if (val && val.payload) {
+      await load(JSON.parse(val.payload));
+      if (stEl) stEl.textContent = '✅ Downloaded and merged from Firebase at ' + new Date().toLocaleTimeString();
+      setTimeout(() => home(), 1200);
+      return true;
+    }
+    if (stEl) stEl.textContent = '⚠️ Backup record in Firebase was empty.';
+    return false;
+  } catch (err) {
+    if (stEl) stEl.textContent = '❌ Restore failed: ' + (err.message || err);
+    return false;
+  }
+}
+
+/* Gemini AI Clinical Assistant Engine */
+const AI_SYSTEM_PROMPT = `You are an expert Clinical Homoeopathic Physician and Consultant assisting with the Standardised Case Record (SCR).
+Your knowledge encompasses the Organon of Medicine (Hahnemann), Kent's Repertory, Synthesis Repertory, Boericke's & Clarke's Materia Medica, and Boger-Boenninghausen characteristics.
+
+When analyzing a patient case:
+1. Identify the Totality of Symptoms: location, sensation, modality (< / >), and accompaniments.
+2. Formulate proper Repertory Rubrics with degree/grading if notable.
+3. Provide a Differential Materia Medica comparison of 3-4 indicated remedies, highlighting unique keynotes that distinguish them.
+4. Note the dominant Miasm (Psora, Sycosis, Tubercular, Syphilis) and acute vs chronic prescribing factors.
+5. Provide actionable clinical guidance for potency, repetition, and evaluation of follow-up according to Kent's 12 observations and Hering's Law of Direction of Cure.
+
+Be structured, concise, and clinically rigorous. Use markdown formatting with bolding and bullet points for high legibility.`;
+
+function renderMarkdown(txt) {
+  if (!txt) return '';
+  return txt
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/^### (.*$)/gim, '<h4>$1</h4>')
+    .replace(/^## (.*$)/gim, '<h3>$1</h3>')
+    .replace(/^# (.*$)/gim, '<h2>$1</h2>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/^\* (.*$)/gim, '<li>$1</li>')
+    .replace(/^- (.*$)/gim, '<li>$1</li>')
+    .replace(/^\d+\. (.*$)/gim, '<li>$1</li>')
+    .replace(/\n\n/g, '<p style="margin:6px 0"></p>')
+    .replace(/\n/g, '<br>');
+}
+
+async function callGemini(promptText, chatHistory = [], systemInstruction = AI_SYSTEM_PROMPT) {
+  const cfg = (await get('cfg')) || {};
+  const apiKey = cfg.geminiKey;
+  if (!apiKey) {
+    throw new Error('Gemini API key is not configured. Go to "Backup & cloud" or enter your key.');
+  }
+  const model = cfg.geminiModel || 'gemini-1.5-flash';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+  const contents = [];
+  chatHistory.slice(-8).forEach(item => {
+    contents.push({
+      role: item.role === 'user' ? 'user' : 'model',
+      parts: [{ text: item.text }]
+    });
+  });
+  contents.push({
+    role: 'user',
+    parts: [{ text: promptText }]
+  });
+
+  const body = {
+    contents,
+    generationConfig: {
+      temperature: 0.35,
+      maxOutputTokens: 2500
+    }
+  };
+  if (systemInstruction) {
+    body.system_instruction = { parts: [{ text: systemInstruction }] };
+  }
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({}));
+    const errMsg = errData.error && errData.error.message ? errData.error.message : `API error (status ${res.status})`;
+    throw new Error(errMsg);
+  }
+
+  const data = await res.json();
+  const cand = data.candidates && data.candidates[0];
+  if (cand && cand.content && cand.content.parts && cand.content.parts.length) {
+    return cand.content.parts.map(p => p.text).join('\n');
+  }
+  return 'No response generated from Gemini.';
+}
+
+let aiChatHistory = [];
+function renderAiMessages(container) {
+  if (!container) return;
+  if (!aiChatHistory.length) {
+    container.innerHTML = `
+      <div style="text-align:center;padding:30px 14px;color:var(--mu)">
+        <div style="font-size:36px;margin-bottom:8px">🤖</div>
+        <b>SCR Clinical AI Assistant</b>
+        <p style="font-size:12px;margin:6px 0 0;line-height:1.5">Ask questions about homoeopathic rubrics, remedies, or tap a chip above to analyze a patient case.</p>
+      </div>
+    `;
+    return;
+  }
+  container.innerHTML = aiChatHistory.map(m => `
+    <div class="ai-msg ${m.role}">
+      ${m.role === 'model' ? renderMarkdown(m.text) : esc(m.text)}
+    </div>
+  `).join('');
+  container.scrollTop = container.scrollHeight;
+}
+
+function showAiTyping(container) {
+  if (!container) return null;
+  const el = document.createElement('div');
+  el.className = 'ai-typing';
+  el.innerHTML = '<span class="ai-dot"></span><span class="ai-dot"></span><span class="ai-dot"></span>';
+  container.appendChild(el);
+  container.scrollTop = container.scrollHeight;
+  return el;
+}
+
+async function sendAiPrompt(prompt, container = null) {
+  const activeContainer = container || $('#aiChat') || $('#homeAiChat');
+  if (!prompt || !prompt.trim()) return;
+  aiChatHistory.push({ role: 'user', text: prompt.trim() });
+  renderAiMessages($('#aiChat'));
+  renderAiMessages($('#homeAiChat'));
+
+  const typingEl = showAiTyping(activeContainer);
+  try {
+    const answer = await callGemini(prompt, aiChatHistory.slice(0, -1));
+    if (typingEl) typingEl.remove();
+    aiChatHistory.push({ role: 'model', text: answer });
+    renderAiMessages($('#aiChat'));
+    renderAiMessages($('#homeAiChat'));
+    await set('ai_history', aiChatHistory);
+  } catch (err) {
+    if (typingEl) typingEl.remove();
+    aiChatHistory.push({ role: 'model', text: '⚠️ **Error:** ' + err.message });
+    renderAiMessages($('#aiChat'));
+    renderAiMessages($('#homeAiChat'));
+  }
+}
+
+function buildPatientCaseContext(p) {
+  let ctx = `Patient Name: ${p.name}\n`;
+  ctx += `Case Created: ${new Date(p.created).toLocaleDateString()}\n`;
+  if (p.fu && p.fu.length) {
+    ctx += `Follow-ups Recorded (${p.fu.length}):\n`;
+    p.fu.forEach((f, idx) => {
+      ctx += `  ${idx + 1}. Date: ${f.date} | Rx / Notes: ${f.rx || 'None'}\n`;
+    });
+  } else {
+    ctx += `Follow-ups: None recorded yet.\n`;
+  }
+  const activeSections = [];
+  SECS.forEach((sec, idx) => {
+    if (p.ink && p.ink['s' + idx]) {
+      activeSections.push(`${sec.title} (${sec.hint})`);
+    }
+  });
+  if (activeSections.length) {
+    ctx += `Sections with recorded entries:\n` + activeSections.map(s => '  • ' + s).join('\n') + '\n';
+  }
+  return ctx;
+}
+
+function analyzeActivePatientCase(p) {
+  if (!p) {
+    alert('Please open or select a patient record first.');
+    return;
+  }
+  const caseData = buildPatientCaseContext(p);
+  const prompt = `Please perform a clinical homoeopathic case analysis and repertory synthesis for the following Standardised Case Record (SCR) patient:\n\n${caseData}\n\nPlease provide:\n1. Totality of Symptoms summary\n2. Key Repertory Rubrics\n3. Differential Materia Medica comparison (top 3-4 indicated remedies with keynotes)\n4. Dominant Miasmatic assessment\n5. Clinical recommendations for potency, repetition & follow-up evaluation.`;
+  toggleAiDrawer(true);
+  sendAiPrompt(prompt);
+}
+
+function toggleAiDrawer(open) {
+  const drawer = $('#aiDrawer'), backdrop = $('#aiBackdrop');
+  if (!drawer || !backdrop) return;
+  drawer.classList.toggle('open', open);
+  backdrop.classList.toggle('open', open);
+  updateAiPatientBadge();
+  if (open) {
+    renderAiMessages($('#aiChat'));
+    setTimeout(() => { if ($('#aiInput')) $('#aiInput').focus(); }, 150);
+  }
+}
+
+function updateAiPatientBadge() {
+  const badge = $('#aiActivePat'), chipAnalyze = $('#chipAnalyze');
+  const p = window.currentActivePatient;
+  if (badge) {
+    badge.style.display = p ? 'inline-block' : 'none';
+    badge.textContent = p ? '👤 ' + p.name : '';
+  }
+  if (chipAnalyze) {
+    chipAnalyze.style.display = p ? 'inline-block' : 'none';
+  }
+}
+
+function initAiAssistant() {
+  if ($('#aiFab')) $('#aiFab').onclick = () => toggleAiDrawer(true);
+  if ($('#aiClose')) $('#aiClose').onclick = () => toggleAiDrawer(false);
+  if ($('#aiBackdrop')) $('#aiBackdrop').onclick = () => toggleAiDrawer(false);
+
+  const doSend = () => {
+    const val = $('#aiInput').value.trim();
+    if (!val) return;
+    $('#aiInput').value = '';
+    sendAiPrompt(val);
+  };
+  if ($('#aiSend')) $('#aiSend').onclick = doSend;
+  if ($('#aiInput')) $('#aiInput').onkeydown = e => { if (e.key === 'Enter') doSend(); };
+
+  if ($('#chipAnalyze')) $('#chipAnalyze').onclick = () => {
+    if (window.currentActivePatient) analyzeActivePatientCase(window.currentActivePatient);
+  };
+  if ($('#chipRepertory')) $('#chipRepertory').onclick = () => {
+    sendAiPrompt('What are the key Homoeopathic Repertory rubrics for a patient presenting with marked restlessness, burning pains relieved by warmth, and thirst for small sips of warm water?');
+  };
+  if ($('#chipMM')) $('#chipMM').onclick = () => {
+    sendAiPrompt('Provide a concise Differential Materia Medica comparison between Nux vomica, Lycopodium, and Sulphur, highlighting digestive keynotes, thermals, and temperament.');
+  };
+  if ($('#chipMiasm')) $('#chipMiasm').onclick = () => {
+    sendAiPrompt('Explain how to differentiate Psora, Sycosis, and Syphilis in chronic constitutional prescribing according to Hahnemann and modern SCR principles.');
+  };
+  if ($('#chipClear')) $('#chipClear').onclick = async () => {
+    aiChatHistory = [];
+    await set('ai_history', []);
+    renderAiMessages($('#aiChat'));
+    renderAiMessages($('#homeAiChat'));
+  };
+
+  get('ai_history').then(hist => {
+    if (hist && Array.isArray(hist)) aiChatHistory = hist;
+    renderAiMessages($('#aiChat'));
+  });
+}
 
 const dump = async () => {
   if (!db) return Object.fromEntries(mem);
@@ -549,7 +1178,7 @@ const load = async o => {
 async function bkInit() {
   const c = (await get('cfg')) || {}, st = t => $('#st').textContent = t;
   $('#cu').value = c.url || ''; $('#ct').value = c.token || '';
-  const sc = () => set('cfg', { url: $('#cu').value.trim(), token: $('#ct').value });
+  const sc = () => set('cfg', { ...c, url: $('#cu').value.trim(), token: $('#ct').value });
   $('#cu').onchange = $('#ct').onchange = sc;
   const hd = () => {
     const h = { 'Content-Type': 'application/json' };
@@ -557,6 +1186,106 @@ async function bkInit() {
     return h;
   };
 
+  // Firebase Config & Auto-Sync bindings
+  const updateFbBadge = () => {
+    const b = $('#fbBadge');
+    if (!b) return;
+    if (c.firebase && c.firebase.projectId) {
+      b.style.background = 'var(--ac2)';
+      b.style.color = 'var(--ac)';
+      b.textContent = '🟢 ' + c.firebase.projectId;
+    } else {
+      b.style.background = '#eee';
+      b.style.color = '#666';
+      b.textContent = 'Not Configured';
+    }
+  };
+
+  if (c.firebase) {
+    $('#fbCfg').value = JSON.stringify(c.firebase, null, 2);
+  }
+  $('#fbAuto').checked = !!c.fbAuto;
+  updateFbBadge();
+
+  $('#fbAuto').onchange = async e => {
+    c.fbAuto = e.target.checked;
+    await set('cfg', c);
+  };
+
+  $('#fbSave').onclick = async () => {
+    const raw = $('#fbCfg').value.trim();
+    if (!raw) {
+      delete c.firebase;
+      await set('cfg', c);
+      updateFbBadge();
+      $('#fbSt').textContent = 'Firebase configuration cleared.';
+      return;
+    }
+    const parsed = parseFirebaseConfig(raw);
+    if (!parsed || !parsed.apiKey || !parsed.projectId) {
+      $('#fbSt').textContent = '❌ Could not parse config. Please make sure apiKey and projectId are present.';
+      return;
+    }
+    c.firebase = parsed;
+    await set('cfg', c);
+    updateFbBadge();
+    $('#fbSt').textContent = '✅ Firebase config saved successfully!';
+    getFirebaseDb(c.firebase);
+  };
+
+  $('#fbTest').onclick = async () => {
+    const stEl = $('#fbSt');
+    if (!c.firebase || !c.firebase.projectId) {
+      stEl.textContent = 'Please save your Firebase config first.';
+      return;
+    }
+    stEl.textContent = 'Connecting to Firebase Firestore…';
+    const fdb = getFirebaseDb(c.firebase);
+    if (!fdb) {
+      stEl.textContent = '❌ Could not initialize Firebase SDK. Check internet connection.';
+      return;
+    }
+    try {
+      await fdb.collection('scr_backups').doc(c.firebase.projectId).get();
+      stEl.textContent = '✅ Connection successful! Firestore is ready.';
+    } catch (e) {
+      stEl.textContent = '❌ Connection failed: ' + (e.message || e);
+    }
+  };
+
+  $('#fbSync').onclick = () => fbSync($('#fbSt'));
+  $('#fbRestore').onclick = () => fbRestore($('#fbSt'));
+
+  // Gemini API Key bindings
+  $('#gemKey').value = c.geminiKey || '';
+  $('#gemModel').value = c.geminiModel || 'gemini-1.5-flash';
+
+  $('#gemSave').onclick = async () => {
+    c.geminiKey = $('#gemKey').value.trim();
+    c.geminiModel = $('#gemModel').value;
+    await set('cfg', c);
+    $('#gemSt').textContent = '✅ Gemini API settings saved!';
+  };
+
+  $('#gemTest').onclick = async () => {
+    const stEl = $('#gemSt');
+    c.geminiKey = $('#gemKey').value.trim();
+    c.geminiModel = $('#gemModel').value;
+    if (!c.geminiKey) {
+      stEl.textContent = '⚠️ Please enter an API key first.';
+      return;
+    }
+    await set('cfg', c);
+    stEl.textContent = 'Connecting to Google Gemini API…';
+    try {
+      const res = await callGemini('Ping. Respond with "Gemini API connected successfully."');
+      stEl.textContent = '✅ ' + res;
+    } catch (err) {
+      stEl.textContent = '❌ Test failed: ' + err.message;
+    }
+  };
+
+  // Local file backup
   $('#ex').onclick = async () => {
     const jsonStr = JSON.stringify({ v: 1, data: await dump() });
     if (window.AndroidBridge && window.AndroidBridge.exportBackup) {
@@ -631,17 +1360,91 @@ async function bkInit() {
   };
 }
 
+function renderAiTab(ps) {
+  const mn = $('main');
+  mn.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:14px;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <b style="font-size:16px">🤖 AI Clinical Assistant &amp; Case Synthesizer</b>
+        <button id="btnAiCfg" style="font-size:12px;padding:4px 8px;border-radius:6px">⚙️ API Settings</button>
+      </div>
+      <p class="mu" style="margin:0 0 10px;font-size:13px">Homoeopathic repertory rubric analysis, differential Materia Medica, and miasmatic totality powered by Google Gemini.</p>
+      <div style="display:flex;gap:8px">
+        <select id="homeAiPat" style="flex:1">
+          <option value="">-- General Homoeopathy Consultation --</option>
+          ${ps.map(p => `<option value="${p.id}" ${window.currentActivePatient && window.currentActivePatient.id === p.id ? 'selected' : ''}>👤 ${esc(p.name)} (${p.fu.length} follow-ups)</option>`).join('')}
+        </select>
+        <button id="btnHomeAnalyze" class="pri" style="width:auto;padding:8px 14px">📋 Analyze Selected Case</button>
+      </div>
+    </div>
+    <div class="ai-chips" style="border-radius:8px 8px 0 0">
+      <button class="ai-chip" data-p="rubrics">🔍 Rubric Finder</button>
+      <button class="ai-chip" data-p="mm">💊 Differential Materia Medica</button>
+      <button class="ai-chip" data-p="miasm">🧬 Miasmatic Evaluation</button>
+      <button class="ai-chip" data-p="kent">📈 Kent's 12 Observations</button>
+      <button class="ai-chip" data-p="clear">🧹 Clear Chat</button>
+    </div>
+    <div id="homeAiChat" class="ai-chat-body" style="background:var(--card);border:1px solid var(--bd);border-top:none;height:380px;border-radius:0 0 8px 8px;margin-bottom:12px"></div>
+    <div class="ai-input-bar" style="border-radius:8px;border:1px solid var(--bd)">
+      <input id="homeAiInput" placeholder="Ask Gemini about rubrics, remedies, or case analysis…" autocomplete="off">
+      <button id="homeAiSend" class="pri" style="width:auto;padding:8px 16px">Send</button>
+    </div>
+  `;
+
+  $('#btnAiCfg').onclick = () => { S.tab = 'bk'; home(); };
+
+  $('#btnHomeAnalyze').onclick = () => {
+    const selId = $('#homeAiPat').value;
+    if (!selId) {
+      alert('Please select a patient from the dropdown first.');
+      return;
+    }
+    const patObj = ps.find(p => p.id === selId);
+    if (patObj) analyzeActivePatientCase(patObj);
+  };
+
+  const doHomeSend = () => {
+    const val = $('#homeAiInput').value.trim();
+    if (!val) return;
+    $('#homeAiInput').value = '';
+    sendAiPrompt(val, $('#homeAiChat'));
+  };
+  $('#homeAiSend').onclick = doHomeSend;
+  $('#homeAiInput').onkeydown = e => { if (e.key === 'Enter') doHomeSend(); };
+
+  mn.querySelectorAll('.ai-chip').forEach(btn => {
+    btn.onclick = () => {
+      const type = btn.dataset.p;
+      if (type === 'rubrics') sendAiPrompt('Suggest key Homoeopathic Repertory rubrics for a case with burning pains, restlessness, and aggravation after midnight.');
+      else if (type === 'mm') sendAiPrompt('Differentiate between Pulsatilla, Sepia, and Natrum muriaticum in emotional & hormonal disorders.');
+      else if (type === 'miasm') sendAiPrompt('Explain how to assess the fundamental miasm in a chronic case where skin eruptions were suppressed.');
+      else if (type === 'kent') sendAiPrompt('Explain Kent\'s 12 observations on remedy action, especially prolonged aggravation with final decline vs short aggravation with slow recovery.');
+      else if (type === 'clear') {
+        aiChatHistory = [];
+        set('ai_history', []);
+        renderAiMessages($('#homeAiChat'));
+        renderAiMessages($('#aiChat'));
+      }
+    };
+  });
+
+  renderAiMessages($('#homeAiChat'));
+}
+
 /* screens */
 async function home() {
   flush = async () => {};
+  window.currentActivePatient = null;
+  updateAiPatientBadge();
   const ps = (await list('p:')).sort((a, b) => b.updated - a.updated), nw = S.tab === 'new';
   const switchBtn = window.AndroidBridge ? '<button id="swNative" style="font-size:13px;padding:6px 10px;background:var(--card);border:1px solid var(--bd);border-radius:8px">📱 Native</button>' : '';
-  app.innerHTML = `<div class="top"><div class="bar"><b class="ttl">SCR Case Book</b>${switchBtn}</div><nav class="tabs"><button data-t="new" class="${nw ? 'on' : ''}">New patient</button><button data-t="fu" class="${S.tab === 'fu' ? 'on' : ''}">Patients &amp; Follow-up</button><button data-t="bk" class="${S.tab === 'bk' ? 'on' : ''}">Backup &amp; cloud</button></nav></div><main>${db ? '' : '<p class="mu">⚠ Storage is unavailable here, so records will be lost when this page closes.</p>'}` + (S.tab === 'bk' ? BK : nw ? '<label style="font-weight:600">Patient name</label><input id="nm" placeholder="Type patient name" autocomplete="off"><button class="pri" id="go">Start case record</button><p class="mu" style="margin-top:10px">Opens the full 106-page Standardised Case Record with digital pen handwriting.</p>' : '<input id="q" placeholder="Search patient name" autocomplete="off"><div id="ls"></div>') + '</main>';
+  app.innerHTML = `<div class="top"><div class="bar"><b class="ttl">SCR Case Book</b>${switchBtn}</div><nav class="tabs"><button data-t="new" class="${nw ? 'on' : ''}">New patient</button><button data-t="fu" class="${S.tab === 'fu' ? 'on' : ''}">Patients &amp; Follow-up</button><button data-t="ai" class="${S.tab === 'ai' ? 'on' : ''}">🤖 AI Assistant</button><button data-t="bk" class="${S.tab === 'bk' ? 'on' : ''}">Backup &amp; cloud</button></nav></div><main>${db ? '' : '<p class="mu">⚠ Storage is unavailable here, so records will be lost when this page closes.</p>'}` + (S.tab === 'bk' ? BK : S.tab === 'ai' ? '' : nw ? '<label style="font-weight:600">Patient name</label><input id="nm" placeholder="Type patient name" autocomplete="off"><button class="pri" id="go">Start case record</button><p class="mu" style="margin-top:10px">Opens the full 106-page Standardised Case Record with digital pen handwriting.</p>' : '<input id="q" placeholder="Search patient name" autocomplete="off"><div id="ls"></div>') + '</main>';
   
   if ($('#swNative')) $('#swNative').onclick = () => window.AndroidBridge.switchToNative();
   document.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { S.tab = b.dataset.t; home(); });
   
   if (S.tab === 'bk') return bkInit();
+  if (S.tab === 'ai') return renderAiTab(ps);
   if (nw) {
     const go = async () => {
       const name = $('#nm').value.trim();
@@ -665,8 +1468,11 @@ async function home() {
 
 function pat(p, tab = 'c') {
   flush = async () => {};
-  app.innerHTML = `<div class="top"><div class="bar"><button id="bk">‹ Home</button><b class="ttl">${esc(p.name)}</b></div><nav class="tabs"><button data-t="c" class="${tab === 'c' ? 'on' : ''}">Case record (31 sections · 106 pages)</button><button data-t="f" class="${tab === 'f' ? 'on' : ''}">Follow-ups (${p.fu.length})</button></nav></div><main id="mn"></main>`;
-  $('#bk').onclick = () => home();
+  window.currentActivePatient = p;
+  updateAiPatientBadge();
+  app.innerHTML = `<div class="top"><div class="bar"><button id="bk">‹ Home</button><b class="ttl">${esc(p.name)}</b><button id="btnPatAi" style="font-size:12px;padding:6px 12px;background:var(--ac2);color:var(--ac);border:1px solid var(--ac);font-weight:700;border-radius:8px;cursor:pointer">🤖 AI Analyze</button></div><nav class="tabs"><button data-t="c" class="${tab === 'c' ? 'on' : ''}">Case record (31 sections · 106 pages)</button><button data-t="f" class="${tab === 'f' ? 'on' : ''}">Follow-ups (${p.fu.length})</button></nav></div><main id="mn"></main>`;
+  $('#bk').onclick = () => { window.currentActivePatient = null; updateAiPatientBadge(); home(); };
+  $('#btnPatAi').onclick = () => analyzeActivePatientCase(p);
   document.querySelectorAll('[data-t]').forEach(b => b.onclick = () => pat(p, b.dataset.t));
   const mn = $('#mn');
 
@@ -695,6 +1501,8 @@ const openSec = (p, i) => sheet(p, 's' + i, SECS[i].title, { hint: SECS[i].hint,
 const openFu = (p, f) => sheet(p, 'f' + f.id, 'Follow-up · ' + f.date, { fu: f, pgs: [104, 105, 106] });
 
 async function sheet(p, key, title, o = {}) {
+  window.currentActivePatient = p;
+  updateAiPatientBadge();
   const pgsList = o.pgs || [1];
   const n0 = Math.max(p.pg[key] || 0, pgsList.length);
   const pg = [];
@@ -995,6 +1803,7 @@ if ('serviceWorker' in navigator) addEventListener('load', () => navigator.servi
 document.addEventListener('visibilitychange', () => { if (document.hidden) flush(); });
 init().then(() => {
   try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
+  initAiAssistant();
   home();
 });
 </script>
