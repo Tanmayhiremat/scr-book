@@ -571,6 +571,7 @@ p, .hint {
   <div class="ai-hdr">
     <b><span>🤖</span> SCR Clinical AI Assistant</b>
     <div style="display:flex;align-items:center;gap:6px">
+      <span class="ai-badge" style="background:var(--ac2);color:var(--ac);font-size:11px">✨ Gemini 3.8</span>
       <span id="aiActivePat" class="ai-badge" style="display:none"></span>
       <button id="aiClose" style="min-height:28px;padding:2px 8px;border-radius:6px;cursor:pointer">✕</button>
     </div>
@@ -804,9 +805,11 @@ const BK = `<h3 style="margin:0 0 8px">Local Backup</h3>
   <label style="font-weight:600;font-size:13px;display:block;margin-bottom:4px">Model Selection</label>
   <div style="display:flex;gap:8px;margin-bottom:8px">
     <select id="gemModel" style="flex:1">
-      <option value="gemini-1.5-flash">Gemini 1.5 Flash (Fast &amp; Accurate - Recommended)</option>
-      <option value="gemini-2.0-flash">Gemini 2.0 Flash (Next-Gen Speed)</option>
-      <option value="gemini-1.5-pro">Gemini 1.5 Pro (Deep Clinical Reasoning)</option>
+      <option value="gemini-3.8-flash" selected>Gemini 3.8 Flash (Newest Frontier - Fastest &amp; Recommended)</option>
+      <option value="gemini-3.8-pro">Gemini 3.8 Pro (Next-Gen Deep Clinical Reasoning &amp; Synthesis)</option>
+      <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+      <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+      <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
     </select>
   </div>
   <div style="display:flex;gap:8px">
@@ -990,7 +993,7 @@ async function callGemini(promptText, chatHistory = [], systemInstruction = AI_S
   if (!apiKey) {
     throw new Error('Gemini API key is not configured. Go to "Backup & cloud" or enter your key.');
   }
-  const model = cfg.geminiModel || 'gemini-1.5-flash';
+  const model = cfg.geminiModel || 'gemini-3.8-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const contents = [];
@@ -1016,11 +1019,25 @@ async function callGemini(promptText, chatHistory = [], systemInstruction = AI_S
     body.system_instruction = { parts: [{ text: systemInstruction }] };
   }
 
-  const res = await fetch(url, {
+  let res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': apiKey
+    },
     body: JSON.stringify(body)
   });
+
+  // Graceful fallback if a 3.8 preview model is not yet provisioned on this specific API key
+  if (!res.ok && res.status === 404 && model.startsWith('gemini-3')) {
+    const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    const fbRes = await fetch(fallbackUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+      body: JSON.stringify(body)
+    });
+    if (fbRes.ok) res = fbRes;
+  }
 
   if (!res.ok) {
     const errData = await res.json().catch(() => ({}));
@@ -1289,7 +1306,7 @@ async function bkInit() {
 
   // Gemini API Key bindings
   $('#gemKey').value = c.geminiKey || '';
-  $('#gemModel').value = c.geminiModel || 'gemini-1.5-flash';
+  $('#gemModel').value = c.geminiModel || 'gemini-3.8-flash';
 
   $('#gemSave').onclick = async () => {
     c.geminiKey = $('#gemKey').value.trim();
@@ -1397,7 +1414,10 @@ function renderAiTab(ps) {
     <div style="background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:14px;margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <b style="font-size:16px">🤖 AI Clinical Assistant &amp; Case Synthesizer</b>
-        <button id="btnAiCfg" style="font-size:12px;padding:4px 8px;border-radius:6px">⚙️ API Settings</button>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:12px;background:var(--ac2);color:var(--ac)">✨ Gemini 3.8</span>
+          <button id="btnAiCfg" style="font-size:12px;padding:4px 8px;border-radius:6px">⚙️ API Settings</button>
+        </div>
       </div>
       <p class="mu" style="margin:0 0 10px;font-size:13px">Homoeopathic repertory rubric analysis, differential Materia Medica, and miasmatic totality powered by Google Gemini.</p>
       <div style="display:flex;gap:8px">
