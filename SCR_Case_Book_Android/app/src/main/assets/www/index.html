@@ -825,15 +825,42 @@ const BK = `<h3 style="margin:0 0 8px">Local Backup</h3>
 <p class="mu" id="st"></p>`;
 
 /* Firebase Firestore Sync Engine */
+const DEFAULT_FIREBASE_CFG = {
+  apiKey: 'AIzaSyDrSShRe4Jsb8Zz2RQoBSxigeU1Brmf79A',
+  projectId: 'scr-book',
+  storageBucket: 'scr-book.firebasestorage.app',
+  messagingSenderId: '827349434878',
+  appId: '1:827349434878:android:76b7b90317ae4a9cafc0af'
+};
+
 function parseFirebaseConfig(str) {
   if (!str) return null;
   str = str.trim();
   const match = str.match(/\{[\s\S]*\}/);
   if (!match) return null;
-  let jsonStr = match[0];
-  try { return JSON.parse(jsonStr); } catch (e) {}
-  jsonStr = jsonStr.replace(/([{\s,])(\w+)\s*:/g, '$1"$2":').replace(/,\s*([}\]])/g, '$1');
-  try { return JSON.parse(jsonStr); } catch (e) {}
+  let parsed = null;
+  try { parsed = JSON.parse(match[0]); } catch (e) {
+    try {
+      const fixed = match[0].replace(/([{\s,])(\w+)\s*:/g, '$1"$2":').replace(/,\s*([}\]])/g, '$1');
+      parsed = JSON.parse(fixed);
+    } catch (e2) {}
+  }
+  if (parsed && typeof parsed === 'object') {
+    // Check if it's google-services.json format
+    if (parsed.project_info) {
+      const pInfo = parsed.project_info;
+      const client = (parsed.client && parsed.client[0]) || {};
+      const keyObj = (client.api_key && client.api_key[0]) || {};
+      return {
+        projectId: pInfo.project_id,
+        apiKey: keyObj.current_key,
+        storageBucket: pInfo.storage_bucket,
+        messagingSenderId: pInfo.project_number,
+        appId: client.client_info?.mobilesdk_app_id
+      };
+    }
+    if (parsed.projectId && parsed.apiKey) return parsed;
+  }
   const apiKey = (str.match(/apiKey["'\s:]+([^"',\s]+)/) || [])[1];
   const projectId = (str.match(/projectId["'\s:]+([^"',\s]+)/) || [])[1];
   const authDomain = (str.match(/authDomain["'\s:]+([^"',\s]+)/) || [])[1];
@@ -863,7 +890,8 @@ function getFirebaseDb(cfg) {
 
 async function fbSync(stEl) {
   const c = (await get('cfg')) || {};
-  if (!c.firebase || !c.firebase.projectId) {
+  const fbConfig = (c.firebase && c.firebase.projectId) ? c.firebase : DEFAULT_FIREBASE_CFG;
+  if (!fbConfig || !fbConfig.projectId) {
     if (stEl) stEl.textContent = '⚠️ Please save your Firebase configuration first.';
     return false;
   }
@@ -873,10 +901,10 @@ async function fbSync(stEl) {
   }
   if (stEl) stEl.textContent = 'Syncing cases to Firebase Firestore…';
   try {
-    const fdb = getFirebaseDb(c.firebase);
+    const fdb = getFirebaseDb(fbConfig);
     if (!fdb) throw new Error('Could not initialize Firebase Firestore');
     const dumpData = await dump();
-    const docId = c.firebase.projectId;
+    const docId = fbConfig.projectId;
     await fdb.collection('scr_backups').doc(docId).set({
       updated: Date.now(),
       v: 1,
@@ -893,7 +921,8 @@ async function fbSync(stEl) {
 
 async function fbRestore(stEl) {
   const c = (await get('cfg')) || {};
-  if (!c.firebase || !c.firebase.projectId) {
+  const fbConfig = (c.firebase && c.firebase.projectId) ? c.firebase : DEFAULT_FIREBASE_CFG;
+  if (!fbConfig || !fbConfig.projectId) {
     if (stEl) stEl.textContent = '⚠️ Please save your Firebase configuration first.';
     return false;
   }
@@ -903,9 +932,9 @@ async function fbRestore(stEl) {
   }
   if (stEl) stEl.textContent = 'Downloading cases from Firebase Firestore…';
   try {
-    const fdb = getFirebaseDb(c.firebase);
+    const fdb = getFirebaseDb(fbConfig);
     if (!fdb) throw new Error('Could not initialize Firebase Firestore');
-    const docId = c.firebase.projectId;
+    const docId = fbConfig.projectId;
     const doc = await fdb.collection('scr_backups').doc(docId).get();
     if (!doc.exists) {
       if (stEl) stEl.textContent = 'No records found in Firebase for project ' + docId;
@@ -1190,10 +1219,11 @@ async function bkInit() {
   const updateFbBadge = () => {
     const b = $('#fbBadge');
     if (!b) return;
-    if (c.firebase && c.firebase.projectId) {
+    const activeCfg = c.firebase || DEFAULT_FIREBASE_CFG;
+    if (activeCfg && activeCfg.projectId) {
       b.style.background = 'var(--ac2)';
       b.style.color = 'var(--ac)';
-      b.textContent = '🟢 ' + c.firebase.projectId;
+      b.textContent = '🟢 ' + activeCfg.projectId;
     } else {
       b.style.background = '#eee';
       b.style.color = '#666';
@@ -1201,8 +1231,9 @@ async function bkInit() {
     }
   };
 
-  if (c.firebase) {
-    $('#fbCfg').value = JSON.stringify(c.firebase, null, 2);
+  const currentFb = c.firebase || DEFAULT_FIREBASE_CFG;
+  if (currentFb) {
+    $('#fbCfg').value = JSON.stringify(currentFb, null, 2);
   }
   $('#fbAuto').checked = !!c.fbAuto;
   updateFbBadge();
