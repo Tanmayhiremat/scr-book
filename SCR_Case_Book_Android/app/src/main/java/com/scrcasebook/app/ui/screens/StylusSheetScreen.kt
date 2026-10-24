@@ -110,10 +110,14 @@ fun StylusSheetScreen(
     LaunchedEffect(patientId, sectionKey) {
         val existingPages = database.sectionPageDao().getPagesList(patientId, sectionKey)
         pages.clear()
+        val secDef = ScrDefinitions.SECTIONS.find { it.key == sectionKey }
+        val defaultPageCount = secDef?.pages?.size ?: 1
         if (existingPages.isEmpty()) {
-            pages.add(emptyList())
+            for (p in 0 until defaultPageCount) {
+                pages.add(emptyList())
+            }
         } else {
-            val maxIndex = existingPages.maxOf { it.pageIndex }
+            val maxIndex = maxOf(existingPages.maxOf { it.pageIndex }, defaultPageCount - 1)
             for (i in 0..maxIndex) {
                 val pageEntity = existingPages.find { it.pageIndex == i }
                 if (pageEntity != null && pageEntity.strokesJson.isNotEmpty()) {

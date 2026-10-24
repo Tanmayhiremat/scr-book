@@ -63,7 +63,7 @@ fun StylusDrawingCanvas(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .aspectRatio(5f / 7f)
+            .aspectRatio(1270f / 857f)
             .shadow(6.dp, RoundedCornerShape(4.dp))
             .clip(RoundedCornerShape(4.dp)),
         colors = CardDefaults.cardColors(containerColor = paperBackground)

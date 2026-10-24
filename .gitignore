@@ -17,3 +17,4 @@ local.properties
 # Gradle and build outputs
 **/build/
 **/.gradle/
+*.zip

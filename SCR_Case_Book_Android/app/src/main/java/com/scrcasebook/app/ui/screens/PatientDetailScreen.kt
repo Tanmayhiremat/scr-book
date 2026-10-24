@@ -115,7 +115,7 @@ fun PatientDetailScreen(
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
-                    text = { Text("Case Record (26)", fontWeight = FontWeight.SemiBold) }
+                    text = { Text("Case Record (${ScrDefinitions.SECTIONS.size})", fontWeight = FontWeight.SemiBold) }
                 )
                 Tab(
                     selected = selectedTab == 1,
@@ -125,7 +125,7 @@ fun PatientDetailScreen(
             }
 
             if (selectedTab == 0) {
-                // CASE RECORD: 26 CLINICAL SECTIONS GRID
+                // CASE RECORD: 31 CLINICAL SECTIONS GRID (106 PAGES)
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 240.dp),
                     contentPadding = PaddingValues(12.dp),
@@ -135,6 +135,7 @@ fun PatientDetailScreen(
                 ) {
                     items(ScrDefinitions.SECTIONS) { sec ->
                         val hasDone = sectionsWithInk.contains(sec.key)
+                        val pgBadge = if (sec.pages.isEmpty()) "" else if (sec.pages.size == 1) "p. ${sec.pages.first()}" else "p. ${sec.pages.first()}–${sec.pages.last()}"
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -146,31 +147,43 @@ fun PatientDetailScreen(
                             ),
                             border = CardDefaults.outlinedCardBorder()
                         ) {
-                            Row(
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(14.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                    .padding(12.dp)
                             ) {
-                                Text(
-                                    text = "${sec.index + 1}",
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 13.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.width(26.dp)
-                                )
-                                Text(
-                                    text = sec.title,
-                                    fontWeight = FontWeight.Medium,
-                                    fontSize = 14.sp,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                if (hasDone) {
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = "Completed",
-                                        tint = ScrPrimary,
-                                        modifier = Modifier.size(18.dp)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "${sec.index + 1}",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.width(24.dp)
+                                    )
+                                    Text(
+                                        text = sec.title,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 14.sp,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    if (hasDone) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "Completed",
+                                            tint = ScrPrimary,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+                                if (pgBadge.isNotEmpty()) {
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        text = pgBadge,
+                                        fontSize = 11.sp,
+                                        color = MaterialTheme.colorScheme.outline
                                     )
                                 }
                             }
